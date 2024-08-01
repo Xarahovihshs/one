@@ -201,9 +201,21 @@ class Browser:
         # Concatenate username and browser type for a plain text session ID
         sessionid = f"{self.username}"
 
-        sessionsDir = sessionsDir / sessionid
-        sessionsDir.mkdir(parents=True, exist_ok=True)
-        return sessionsDir
+        # Create profile directory
+        profileDir = sessionsDir / sessionid
+        profileDir.mkdir(parents=True, exist_ok=True)
+
+        # Create separate directories for mobile and desktop sessions
+        mobileDir = profileDir / "Mobile"
+        desktopDir = profileDir / "Desktop"
+        mobileDir.mkdir(parents=True, exist_ok=True)
+        desktopDir.mkdir(parents=True, exist_ok=True)
+
+        # Return the appropriate directory based on the user agent
+        if self.mobile:
+            return mobileDir
+        else:
+            return desktopDir
 
     @staticmethod
     def getCCodeLang(lang: str, geo: str) -> tuple:
