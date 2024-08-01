@@ -49,7 +49,6 @@ class Searches:
     """
     how many seconds to delay
     """
-    # retriesStrategy = Final[  # todo Figure why doesn't work with equality below
     retriesStrategy = RetriesStrategy[
         config.get("retries", {}).get("strategy", RetriesStrategy.CONSTANT.name)
     ]
@@ -134,7 +133,7 @@ class Searches:
             # todo Disable cooldown for first 3 searches (Earning starts with your third search)
             logging.info(f"[BING] {searchCount}/{remainingSearches}")
             self.bingSearch()
-            time.sleep(random.randint(10, 15))
+            time.sleep(random.randint(200, 300))
 
         logging.info(
             f"[BING] Finished {self.browser.browserType.capitalize()} Edge Bing searches !"
@@ -151,53 +150,32 @@ class Searches:
         baseDelay = Searches.baseDelay
         logging.debug(f"rootTerm={rootTerm}")
 
-        for i in range(self.maxRetries + 1):
-            if i != 0:
-                sleepTime: float
-                if Searches.retriesStrategy == Searches.retriesStrategy.EXPONENTIAL:
-                    sleepTime = baseDelay * 2 ** (i - 1)
-                elif Searches.retriesStrategy == Searches.retriesStrategy.CONSTANT:
-                    sleepTime = baseDelay
-                else:
-                    raise AssertionError
-                logging.debug(
-                    f"[BING] Search attempt failed {i}/{Searches.maxRetries}, sleeping {sleepTime}"
-                    f" seconds..."
-                )
-                time.sleep(sleepTime)
-
-            searchbar = self.browser.utils.waitUntilClickable(
-                By.ID, "sb_form_q", timeToWait=20
-            )
-            for _ in range(1000):
-                searchbar.click()
-                searchbar.clear()
-                term = next(termsCycle)
-                logging.debug(f"term={term}")
-                searchbar.send_keys(term)
-                with contextlib.suppress(TimeoutException):
-                    WebDriverWait(self.webdriver, 10).until(
-                        expected_conditions.text_to_be_present_in_element_value(
-                            (By.ID, "sb_form_q"), term
-                        )
+        searchbar = self.browser.utils.waitUntilClickable(
+            By.ID, "sb_form_q", timeToWait=20
+        )
+        for _ in range(1000):
+            searchbar.click()
+            searchbar.clear()
+            term = next(termsCycle)
+            logging.debug(f"term={term}")
+            searchbar.send_keys(term)
+            with contextlib.suppress(TimeoutException):
+                WebDriverWait(self.webdriver, 10).until(
+                    expected_conditions.text_to_be_present_in_element_value(
+                        (By.ID, "sb_form_q"), term
                     )
-                    break
-                logging.debug("error send_keys")
-            else:
-                # todo Still happens occasionally, gotta be a fix
-                raise TimeoutException
-            searchbar.submit()
+                )
+                break
+            logging.debug("error send_keys")
+        else:
+            # todo Still happens occasionally, gotta be a fix
+            raise TimeoutException
+        searchbar.submit()
 
-            pointsAfter = self.browser.utils.getAccountPoints()
-            if pointsBefore < pointsAfter:
-                del self.googleTrendsShelf[rootTerm]
-                return
-
-            # todo
-            # if i == (maxRetries / 2):
-            #     logging.info("[BING] " + "TIMED OUT GETTING NEW PROXY")
-            #     self.webdriver.proxy = self.browser.giveMeProxy()
-        logging.error("[BING] Reached max search attempt retries")
+        pointsAfter = self.browser.utils.getAccountPoints()
+        if pointsBefore < pointsAfter:
+            del self.googleTrendsShelf[rootTerm]
+            return
 
         logging.debug("Moving passedInTerm to end of list")
         del self.googleTrendsShelf[rootTerm]
