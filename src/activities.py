@@ -27,7 +27,7 @@ class Activities:
 
     def completeSearch(self):
         # Simulate completing a search activity
-        time.sleep(random.randint(100, 180))
+        time.sleep(random.randint(120, 200))
         self.browser.utils.closeCurrentTab()
 
     def completeSurvey(self):
